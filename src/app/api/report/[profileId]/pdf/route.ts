@@ -23,7 +23,7 @@ export async function GET(
     // Verify ownership
     const report = await prisma.analysisReport.findUnique({
       where: { clientProfileId: profileId },
-      select: { agentId: true, status: true },
+      select: { agentId: true, status: true, reportPdfUrl: true },
     });
 
     if (!report || report.agentId !== session.user.id) {
@@ -37,7 +37,25 @@ export async function GET(
       );
     }
 
-    const pdfBuffer = await generateAnalysisPdf(profileId, session.user.id);
+    // If we have a stored PDF, we could fetch it or redirect
+    // For a cleaner download experience with custom filename, we'll fetch it if available
+    let pdfBuffer: Buffer | Uint8Array | null = null;
+    
+    if (report.reportPdfUrl) {
+      try {
+        const response = await fetch(report.reportPdfUrl);
+        if (response.ok) {
+          pdfBuffer = new Uint8Array(await response.arrayBuffer());
+        }
+      } catch (fetchError) {
+        console.error("Failed to fetch stored PDF, falling back to generation:", fetchError);
+      }
+    }
+
+    if (!pdfBuffer) {
+      const generated = await generateAnalysisPdf(profileId, session.user.id);
+      if (generated) pdfBuffer = new Uint8Array(generated);
+    }
 
     if (!pdfBuffer) {
       return NextResponse.json(

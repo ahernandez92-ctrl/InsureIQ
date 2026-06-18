@@ -57,8 +57,23 @@ export async function POST(
       );
     }
 
-    // Generate PDF attachment
-    const pdfBuffer = await generateAnalysisPdf(profileId, session.user.id);
+    // Generate or fetch PDF attachment
+    let pdfBuffer: Buffer | null = null;
+    
+    if (report.reportPdfUrl) {
+      try {
+        const response = await fetch(report.reportPdfUrl);
+        if (response.ok) {
+          pdfBuffer = Buffer.from(await response.arrayBuffer());
+        }
+      } catch (fetchError) {
+        console.error("Failed to fetch stored PDF for email, falling back to generation:", fetchError);
+      }
+    }
+
+    if (!pdfBuffer) {
+      pdfBuffer = await generateAnalysisPdf(profileId, session.user.id);
+    }
 
     // Build portal URL
     const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";

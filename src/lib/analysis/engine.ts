@@ -27,6 +27,8 @@ import {
   generateRiskSummaryWithAI,
   generateNarrativeWithAI,
 } from "./ai-client";
+import { generatePdf } from "@/lib/report/pdf-generator";
+import { uploadReportPdf } from "@/lib/report/storage";
 
 // ─── 1. DATA NORMALIZATION ──────────────────────────────────────
 
@@ -844,7 +846,8 @@ export async function runAnalysis(
 export async function saveAnalysis(
   profileId: string,
   agentId: string,
-  output: AnalysisOutput
+  output: AnalysisOutput,
+  pdfUrl?: string | null
 ) {
   return prisma.analysisReport.upsert({
     where: { clientProfileId: profileId },
@@ -856,6 +859,7 @@ export async function saveAnalysis(
       bundles: JSON.parse(JSON.stringify(output.bundles)),
       riskSummary: output.riskSummary,
       narrative: output.narrative,
+      reportPdfUrl: pdfUrl,
       generatedAt: new Date(),
     },
     create: {
@@ -868,6 +872,7 @@ export async function saveAnalysis(
       bundles: JSON.parse(JSON.stringify(output.bundles)),
       riskSummary: output.riskSummary,
       narrative: output.narrative,
+      reportPdfUrl: pdfUrl,
       generatedAt: new Date(),
     },
   });
@@ -882,8 +887,20 @@ export async function generateAndSaveAnalysis(
 ) {
   try {
     const output = await runAnalysis(profileId, agentId);
-    await saveAnalysis(profileId, agentId, output);
-    return output;
+    
+    // Generate PDF and upload to storage
+    let pdfUrl: string | null = null;
+    try {
+      const pdfBuffer = await generatePdf(output);
+      if (pdfBuffer) {
+        pdfUrl = await uploadReportPdf(profileId, pdfBuffer);
+      }
+    } catch (pdfError) {
+      console.error("Failed to generate or upload PDF during analysis save:", pdfError);
+    }
+
+    await saveAnalysis(profileId, agentId, output, pdfUrl);
+    return { ...output, reportPdfUrl: pdfUrl };
   } catch (error) {
     // Save error state
     await prisma.analysisReport.upsert({

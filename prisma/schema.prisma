@@ -172,6 +172,7 @@ model AnalysisReport {
   bundles            Json?
   riskSummary        String?
   narrative          String?
+  reportPdfUrl       String?
   errorMessage       String?
   generatedAt        DateTime?
   createdAt          DateTime      @default(now())
