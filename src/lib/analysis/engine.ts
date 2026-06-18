@@ -891,7 +891,10 @@ export async function generateAndSaveAnalysis(
     // Generate PDF and upload to storage
     let pdfUrl: string | null = null;
     try {
-      const pdfBuffer = await generatePdf(output);
+      const pdfBuffer = await generatePdf({
+        ...output,
+        eligibleProducts: output.eligibility.eligibleProducts,
+      });
       if (pdfBuffer) {
         pdfUrl = await uploadReportPdf(profileId, pdfBuffer);
       }
