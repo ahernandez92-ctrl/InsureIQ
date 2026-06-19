@@ -835,6 +835,7 @@ export async function runAnalysis(
     riskSummary,
     narrative,
     eligibility,
+    eligibleProducts: eligibility.eligibleProducts,
     scenarios,
     bundles,
   };
@@ -891,10 +892,7 @@ export async function generateAndSaveAnalysis(
     // Generate PDF and upload to storage
     let pdfUrl: string | null = null;
     try {
-      const pdfBuffer = await generatePdf({
-        ...output,
-        eligibleProducts: output.eligibility.eligibleProducts,
-      });
+      const pdfBuffer = await generatePdf(output);
       if (pdfBuffer) {
         pdfUrl = await uploadReportPdf(profileId, pdfBuffer);
       }

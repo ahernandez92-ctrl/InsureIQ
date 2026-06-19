@@ -116,6 +116,7 @@ export interface AnalysisOutput {
   eligibility: EligibilityResult;
   scenarios: ScenarioProjections;
   bundles: BundleRecommendations;
+  eligibleProducts: EligibleProduct[];
 }
 
 // ─── Cost Constants (default national averages) ─────────────────
